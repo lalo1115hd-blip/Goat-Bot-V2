@@ -30,20 +30,9 @@ const path = require("path");
 
 process.env.BLUEBIRD_W_FORGOTTEN_RETURN = 0; // Disable warning: "Warning: a promise was created in a handler but was not returned from it"
 
+// ———————————————— دالة فحص JSON (معطلة) ———————————————— //
 function validJSON(pathDir) {
-	try {
-		if (!fs.existsSync(pathDir))
-			throw new Error(`File "${pathDir}" not found`);
-		execSync(`npx jsonlint "${pathDir}"`, { stdio: 'pipe' });
-		return true;
-	}
-	catch (err) {
-		let msgError = err.message;
-		msgError = msgError.split("\n").slice(1).join("\n");
-		const indexPos = msgError.indexOf("    at");
-		msgError = msgError.slice(0, indexPos != -1 ? indexPos - 1 : msgError.length);
-		throw new Error(msgError);
-	}
+	return true;
 }
 
 const { NODE_ENV } = process.env;
@@ -217,59 +206,17 @@ if (config.autoRestart) {
 }
 
 (async () => {
-	// ———————————————— SETUP MAIL ———————————————— //
-	const { gmailAccount } = config.credentials;
-	const { email, clientId, clientSecret, refreshToken } = gmailAccount;
-	const OAuth2 = google.auth.OAuth2;
-	const OAuth2_client = new OAuth2(clientId, clientSecret);
-	OAuth2_client.setCredentials({ refresh_token: refreshToken });
-	let accessToken;
-	try {
-		accessToken = await OAuth2_client.getAccessToken();
-	}
-	catch (err) {
-		throw new Error(getText("Goat", "googleApiTokenExpired"));
-	}
-	const transporter = nodemailer.createTransport({
-		host: 'smtp.gmail.com',
-		service: 'Gmail',
-		auth: {
-			type: 'OAuth2',
-			user: email,
-			clientId,
-			clientSecret,
-			refreshToken,
-			accessToken
-		}
-	});
+	// ———————————————— SETUP MAIL (معطل) ———————————————— //
+	// Google API معطل مؤقتاً
+	const email = "", clientId = "", clientSecret = "", refreshToken = "";
+	let accessToken = "";
 
 	async function sendMail({ to, subject, text, html, attachments }) {
-		const transporter = nodemailer.createTransport({
-			host: 'smtp.gmail.com',
-			service: 'Gmail',
-			auth: {
-				type: 'OAuth2',
-				user: email,
-				clientId,
-				clientSecret,
-				refreshToken,
-				accessToken
-			}
-		});
-		const mailOptions = {
-			from: email,
-			to,
-			subject,
-			text,
-			html,
-			attachments
-		};
-		const info = await transporter.sendMail(mailOptions);
-		return info;
+		throw new Error("Send mail is disabled (Google API not configured)");
 	}
 
 	global.utils.sendMail = sendMail;
-	global.utils.transporter = transporter;
+	global.utils.transporter = null;
 
 	// ———————————————— CHECK VERSION ———————————————— //
 	const { data: { version } } = await axios.get("https://raw.githubusercontent.com/ntkhang03/Goat-Bot-V2/main/package.json");
@@ -282,9 +229,9 @@ if (config.autoRestart) {
 			colors.hex("#eb6a07", version),
 			colors.hex("#eb6a07", "node update")
 		));
-	// —————————— CHECK FOLDER GOOGLE DRIVE —————————— //
-	const parentIdGoogleDrive = await utils.drive.checkAndCreateParentFolder("GoatBot");
-	utils.drive.parentID = parentIdGoogleDrive;
+	// —————————— CHECK FOLDER GOOGLE DRIVE (معطل) —————————— //
+	utils.drive = { parentID: null, checkAndCreateParentFolder: async () => null };
+
 	// ———————————————————— LOGIN ———————————————————— //
 	require(`./bot/login/login${NODE_ENV === 'development' ? '.dev.js' : '.js'}`);
 })();
